@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -161,6 +162,7 @@ export default function DashboardPage() {
             >
               <Settings className="h-4 w-4" />
             </Link>
+            <UserButton />
           </div>
         </div>
       </header>
