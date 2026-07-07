@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
@@ -19,6 +19,7 @@ import {
   History,
   Settings,
   Users,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -26,84 +27,77 @@ import {
   StaggerChildren,
   StaggerItem,
 } from "@/components/animations";
-import { ConfidenceMeter } from "@/components/confidence-meter";
-import { StatusIndicator } from "@/components/status-indicator";
-
-interface ActionItem {
-  assignees: string[];
-  task: string;
-  due_type: string;
-  due_raw: string;
-  due_resolved: string | null;
-  priority: "high" | "normal" | "low";
-  status: string;
-  confidence: number;
-  source: {
-    speaker: string;
-    quote_context: string;
-  };
-}
-
-interface RoughNote {
-  note: string;
-  source: string;
-}
-
-interface ExtractionResult {
-  roughNotes: RoughNote[];
-  actionItems: ActionItem[];
-  groupedByPerson: Record<string, ActionItem[]>;
-}
 
 interface Meeting {
   id: string;
-  title: string;
+  title: string | null;
   date: string;
-  peopleCount: number;
   itemCount: number;
 }
 
-// Mock meetings data
-const mockMeetings: Meeting[] = [
-  {
-    id: "1",
-    title: "Sprint Planning — Week 28",
-    date: "Today, 2:30 PM",
-    peopleCount: 4,
-    itemCount: 6,
-  },
-  {
-    id: "2",
-    title: "Client Review — Restaurant App",
-    date: "Yesterday, 10:00 AM",
-    peopleCount: 3,
-    itemCount: 4,
-  },
-  {
-    id: "3",
-    title: "Team Standup",
-    date: "Jul 5, 9:15 AM",
-    peopleCount: 5,
-    itemCount: 3,
-  },
-];
+interface ExtractionResult {
+  roughNotes: { note: string; source: string }[];
+  actionItems: {
+    task: string;
+    assignees: string[];
+    priority: string;
+    status: string;
+    confidence: number;
+    due_raw: string;
+    due_resolved: string | null;
+    source: { speaker: string; quote_context: string } | null;
+  }[];
+  groupedByPerson: Record<string, ExtractionResult["actionItems"]>;
+}
 
 export default function DashboardPage() {
   const [view, setView] = useState<"history" | "extract">("history");
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [loadingMeetings, setLoadingMeetings] = useState(true);
   const [notes, setNotes] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ExtractionResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleExtract = async () => {
+  // Fetch meetings on mount
+  useEffect(() => {
+    fetchMeetings();
+  }, []);
+
+  async function fetchMeetings() {
+    try {
+      const res = await fetch("/api/meetings");
+      const data = await res.json();
+      setMeetings(data.meetings || []);
+    } catch (error) {
+      console.error("Failed to fetch meetings:", error);
+    } finally {
+      setLoadingMeetings(false);
+    }
+  }
+
+  function formatDate(dateStr: string) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  async function handleExtract() {
     if (!notes.trim()) {
       toast.error("Please paste your meeting notes first");
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setExtracting(true);
     setProgress(0);
     setResult(null);
 
@@ -112,33 +106,34 @@ export default function DashboardPage() {
     }, 200);
 
     try {
-      const response = await fetch("/api/extract", {
+      const res = await fetch("/api/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes }),
       });
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Extraction failed");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Extraction failed");
       }
 
-      const data: ExtractionResult = await response.json();
+      const data: ExtractionResult = await res.json();
       setProgress(100);
       setResult(data);
       toast.success(
-        `Extracted ${data.actionItems.length} action items from ${Object.keys(data.groupedByPerson).length} people`
+        `Extracted ${data.actionItems.length} action items`
       );
+      // Refresh meetings list
+      fetchMeetings();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      toast.error("Extraction failed. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Extraction failed");
     } finally {
       clearInterval(progressInterval);
-      setLoading(false);
+      setExtracting(false);
     }
-  };
+  }
 
-  const getPriorityColor = (priority: string) => {
+  function getPriorityColor(priority: string) {
     switch (priority) {
       case "high":
         return "bg-red-100 text-red-700 border-red-200";
@@ -147,7 +142,7 @@ export default function DashboardPage() {
       default:
         return "bg-blue-100 text-blue-700 border-blue-200";
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-brand-surface">
@@ -174,7 +169,7 @@ export default function DashboardPage() {
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 mb-8">
           <button
-            onClick={() => setView("history")}
+            onClick={() => { setView("history"); setResult(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               view === "history"
                 ? "bg-[#0D9488] text-white"
@@ -248,40 +243,78 @@ export default function DashboardPage() {
                 </Button>
               </div>
 
-              <StaggerChildren className="space-y-3">
-                {mockMeetings.map((meeting) => (
-                  <StaggerItem key={meeting.id}>
-                    <Card className="hover:border-[#0D9488]/30 transition-colors cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+              {loadingMeetings ? (
+                <StaggerChildren className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <StaggerItem key={i}>
+                      <Card>
+                        <CardContent className="p-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-brand-surface rounded-lg flex items-center justify-center">
-                              <Mic className="h-5 w-5 text-[#0D9488]" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-sm">
-                                {meeting.title}
-                              </h3>
-                              <p className="text-xs text-muted-foreground">
-                                {meeting.date}
-                              </p>
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg animate-pulse" />
+                            <div className="flex-1">
+                              <div className="h-4 bg-gray-100 rounded w-1/3 mb-2 animate-pulse" />
+                              <div className="h-3 bg-gray-100 rounded w-1/4 animate-pulse" />
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {meeting.peopleCount}
-                            </span>
-                            <Badge variant="secondary">
-                              {meeting.itemCount} items
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </StaggerItem>
-                ))}
-              </StaggerChildren>
+                        </CardContent>
+                      </Card>
+                    </StaggerItem>
+                  ))}
+                </StaggerChildren>
+              ) : meetings.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Mic className="h-12 w-12 text-[#0D9488]/30 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-brand-text mb-2">
+                      No meetings yet
+                    </h3>
+                    <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
+                      Install the Chrome extension and join a Google Meet call, or
+                      paste notes manually.
+                    </p>
+                    <Button
+                      onClick={() => setView("extract")}
+                      className="bg-[#0D9488] hover:bg-[#0F766E] text-white cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Extraction
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <StaggerChildren className="space-y-3">
+                  {meetings.map((meeting) => (
+                    <StaggerItem key={meeting.id}>
+                      <Link href={`/dashboard/${meeting.id}`}>
+                        <Card className="hover:border-[#0D9488]/30 transition-colors cursor-pointer">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-brand-surface rounded-lg flex items-center justify-center">
+                                  <Mic className="h-5 w-5 text-[#0D9488]" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium text-sm">
+                                    {meeting.title || "Untitled Meeting"}
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDate(meeting.date)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary">
+                                  {meeting.itemCount} items
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </StaggerItem>
+                  ))}
+                </StaggerChildren>
+              )}
             </motion.div>
           )}
 
@@ -295,15 +328,15 @@ export default function DashboardPage() {
               transition={{ duration: 0.2 }}
             >
               <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
                     <FileText className="h-5 w-5 text-[#0D9488]" />
-                    Paste meeting notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <h3 className="font-semibold text-brand-text">
+                      Paste meeting notes
+                    </h3>
+                  </div>
                   <Textarea
-                    placeholder="Paste your meeting notes, transcript, or raw text here...&#10;&#10;The extension handles this automatically for Google Meet calls. Use this for other platforms or manual input."
+                    placeholder={"Paste your meeting notes, transcript, or raw text here...\n\nThe extension handles this automatically for Google Meet calls. Use this for other platforms or manual input."}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="min-h-[200px] font-mono text-sm"
@@ -316,10 +349,10 @@ export default function DashboardPage() {
                     </p>
                     <Button
                       onClick={handleExtract}
-                      disabled={loading || !notes.trim()}
+                      disabled={extracting || !notes.trim()}
                       className="bg-[#0D9488] hover:bg-[#0F766E] text-white cursor-pointer"
                     >
-                      {loading ? (
+                      {extracting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Extracting...
@@ -333,18 +366,12 @@ export default function DashboardPage() {
                     </Button>
                   </div>
 
-                  {loading && (
+                  {extracting && (
                     <div className="mt-4">
                       <Progress value={progress} className="h-2" />
                       <p className="text-sm text-muted-foreground mt-2">
                         Analyzing your meeting notes...
                       </p>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                      {error}
                     </div>
                   )}
                 </CardContent>
@@ -353,118 +380,79 @@ export default function DashboardPage() {
               {/* Results */}
               {result && (
                 <div className="space-y-6">
-                  {result.roughNotes.length > 0 && (
-                    <FadeIn>
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-[#0D9488]" />
-                            Key Notes
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <StaggerChildren className="space-y-3">
-                            {result.roughNotes.map((note, i) => (
-                              <StaggerItem key={i}>
-                                <div className="p-3 bg-brand-surface rounded-lg border border-border">
-                                  <p className="text-sm">{note.note}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    — {note.source}
-                                  </p>
-                                </div>
-                              </StaggerItem>
-                            ))}
-                          </StaggerChildren>
-                        </CardContent>
-                      </Card>
-                    </FadeIn>
-                  )}
-
-                  <div>
-                    <FadeIn>
-                      <h2 className="text-xl font-semibold text-brand-text mb-4 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-[#0D9488]" />
-                        Action Items by Person
-                      </h2>
-                    </FadeIn>
-                    <StaggerChildren className="grid gap-4">
-                      {Object.entries(result.groupedByPerson).map(
-                        ([person, items]) => (
-                          <StaggerItem key={person}>
-                            <Card>
-                              <CardHeader className="bg-brand-surface/50 py-3">
-                                <CardTitle className="flex items-center justify-between text-base">
-                                  <span className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-[#0D9488] text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                      {person[0]}
-                                    </div>
-                                    {person}
-                                  </span>
-                                  <Badge variant="secondary">
-                                    {items.length} task
-                                    {items.length !== 1 ? "s" : ""}
-                                  </Badge>
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent className="pt-3">
-                                <div className="space-y-2">
-                                  {items.map((item, i) => (
-                                    <div
-                                      key={i}
-                                      className="p-3 bg-white rounded-lg border border-border hover:border-[#0D9488]/30 transition-colors"
-                                    >
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-start gap-2 flex-1">
-                                          <StatusIndicator
-                                            status={item.status}
-                                            className="mt-0.5"
-                                          />
-                                          <div className="flex-1">
-                                            <p className="font-medium text-sm">
-                                              {item.task}
-                                            </p>
-                                            <div className="flex items-center gap-3 mt-1.5">
-                                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                <Clock className="h-3 w-3" />
-                                                {item.due_resolved ||
-                                                  item.due_raw}
-                                              </span>
-                                              <ConfidenceMeter
-                                                confidence={item.confidence}
-                                                className="flex-1 max-w-[120px]"
-                                              />
-                                            </div>
-                                            {item.source?.quote_context && (
-                                              <p className="text-xs text-muted-foreground mt-1.5 italic border-l-2 border-[#0D9488] pl-2">
-                                                &ldquo;
-                                                {item.source.quote_context}
-                                                &rdquo;
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <Badge
-                                          className={getPriorityColor(
-                                            item.priority
-                                          )}
-                                        >
-                                          {item.priority}
-                                        </Badge>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </StaggerItem>
-                        )
-                      )}
-                    </StaggerChildren>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-brand-text">
+                      {result.actionItems.length} Action Items
+                    </h2>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setResult(null);
+                        setNotes("");
+                      }}
+                      className="cursor-pointer"
+                    >
+                      New Extraction
+                    </Button>
                   </div>
+
+                  <StaggerChildren className="grid gap-4">
+                    {Object.entries(result.groupedByPerson).map(
+                      ([person, items]) => (
+                        <StaggerItem key={person}>
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-8 h-8 bg-[#0D9488] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                  {person[0]}
+                                </div>
+                                <span className="font-medium text-sm">
+                                  {person}
+                                </span>
+                                <Badge variant="secondary" className="ml-auto">
+                                  {items.length} task
+                                  {items.length !== 1 ? "s" : ""}
+                                </Badge>
+                              </div>
+                              <div className="space-y-2">
+                                {items.map((item, i) => (
+                                  <div
+                                    key={i}
+                                    className="p-3 bg-brand-surface rounded-lg border border-border"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1">
+                                        <p className="font-medium text-sm">
+                                          {item.task}
+                                        </p>
+                                        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                                          <span className="flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            {item.due_resolved || item.due_raw || "No deadline"}
+                                          </span>
+                                          <span className="font-medium text-[#0D9488]">
+                                            {Math.round(item.confidence * 100)}% confident
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <Badge className={getPriorityColor(item.priority)}>
+                                        {item.priority}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </StaggerItem>
+                      )
+                    )}
+                  </StaggerChildren>
                 </div>
               )}
 
-              {!result && !loading && (
+              {!result && !extracting && (
                 <div className="text-center py-12">
                   <Mic className="h-12 w-12 text-[#0D9488]/30 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-brand-text mb-2">

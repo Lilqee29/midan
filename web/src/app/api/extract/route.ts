@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -182,15 +183,33 @@ function groupByAssignee(items: Record<string, unknown>[]) {
   return grouped;
 }
 
+function extractTitleFromNotes(notes: string): string {
+  // Try to extract a title from the notes
+  const lines = notes.split("\n").filter((l) => l.trim());
+  if (lines.length > 0) {
+    // Check for "Date:" line
+    const dateLine = lines.find((l) => /date:/i.test(l));
+    if (dateLine) {
+      // Get the next meaningful line as title
+      const dateIndex = lines.indexOf(dateLine);
+      for (let i = dateIndex + 1; i < Math.min(dateIndex + 5, lines.length); i++) {
+        const line = lines[i].trim();
+        if (line.length > 3 && !/^(date:|subject:|topic:)/i.test(line)) {
+          return line.slice(0, 100);
+        }
+      }
+    }
+    // Fallback: use first non-empty line
+    return lines[0].slice(0, 100);
+  }
+  return "Untitled Meeting";
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (!GROQ_API_KEY) {
@@ -273,6 +292,73 @@ export async function POST(request: NextRequest) {
     );
 
     const grouped = groupByAssignee(normalizedItems);
+
+    // Save to Supabase
+    try {
+      const supabase = getSupabaseAdmin();
+
+      // Create meeting record
+      const title = extractTitleFromNotes(notes);
+      const { data: meeting, error: meetingError } = await supabase
+        .from("meetings")
+        .insert({
+          user_id: userId,
+          title,
+          raw_notes: notes,
+        })
+        .select("id")
+        .single();
+
+      if (meetingError) {
+        console.error("Failed to save meeting:", meetingError);
+      } else if (meeting) {
+        // Save action items
+        const actionItemsToInsert = normalizedItems.map(
+          (item: Record<string, unknown>) => ({
+            meeting_id: meeting.id,
+            assignees: item.assignees,
+            task: item.task,
+            due_type: item.due_type,
+            due_raw: item.due_raw,
+            due_resolved: item.due_resolved,
+            priority: item.priority,
+            status: item.status,
+            confidence: item.confidence,
+            source: item.source,
+          })
+        );
+
+        const { error: itemsError } = await supabase
+          .from("action_items")
+          .insert(actionItemsToInsert);
+
+        if (itemsError) {
+          console.error("Failed to save action items:", itemsError);
+        }
+
+        // Save rough notes
+        if (parsed.rough_notes?.length > 0) {
+          const roughNotesToInsert = parsed.rough_notes.map(
+            (note: { note: string; source: string }) => ({
+              meeting_id: meeting.id,
+              note: note.note,
+              source: note.source,
+            })
+          );
+
+          const { error: notesError } = await supabase
+            .from("rough_notes")
+            .insert(roughNotesToInsert);
+
+          if (notesError) {
+            console.error("Failed to save rough notes:", notesError);
+          }
+        }
+      }
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      // Continue even if DB fails — extraction still works
+    }
 
     return NextResponse.json({
       roughNotes: parsed.rough_notes || [],
