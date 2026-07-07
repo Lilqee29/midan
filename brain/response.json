@@ -1,0 +1,112 @@
+[
+  {
+    "assignees": [
+      "Ibrahim"
+    ],
+    "confidence": 0.8,
+    "createdAt": "2026-07-07T00:00:00.000Z",
+    "createdBy": "Sarah",
+    "displayDue": "Before launch",
+    "due": "unspecified",
+    "priority": "high",
+    "source": {
+      "section": "Meeting Summary",
+      "speaker": "Ibrahim",
+      "timestamp": "unspecified"
+    },
+    "status": "in_progress",
+    "task": "Finish Stripe webhook testing and validate live payment flow"
+  },
+  {
+    "assignees": [
+      "Ibrahim"
+    ],
+    "confidence": 0.8,
+    "createdAt": "2026-07-07T00:00:00.000Z",
+    "createdBy": "Sarah",
+    "displayDue": "Before launch",
+    "due": "unspecified",
+    "priority": "normal",
+    "source": {
+      "section": "Meeting Summary",
+      "speaker": "Ibrahim",
+      "timestamp": "unspecified"
+    },
+    "status": "todo",
+    "task": "Implement email confirmations and one-click reminder actions"
+  },
+  {
+    "assignees": [
+      "Mia",
+      "Ibrahim"
+    ],
+    "confidence": 0.8,
+    "createdAt": "2026-07-07T00:00:00.000Z",
+    "createdBy": "Sarah",
+    "displayDue": "Before launch",
+    "due": "unspecified",
+    "priority": "high",
+    "source": {
+      "section": "Meeting Summary",
+      "speaker": "Mia",
+      "timestamp": "unspecified"
+    },
+    "status": "in_progress",
+    "task": "Improve mobile layout, add sticky mobile filters, and refresh availability on party-size changes"
+  },
+  {
+    "assignees": [
+      "Ibrahim",
+      "Carlos"
+    ],
+    "confidence": 0.8,
+    "createdAt": "2026-07-07T00:00:00.000Z",
+    "createdBy": "Sarah",
+    "displayDue": "Before launch",
+    "due": "unspecified",
+    "priority": "normal",
+    "source": {
+      "section": "Meeting Summary",
+      "speaker": "Ibrahim",
+      "timestamp": "unspecified"
+    },
+    "status": "todo",
+    "task": "Add waiting-list notification automation with duplicate suppression and SMS fallback"
+  },
+  {
+    "assignees": [
+      "Ibrahim"
+    ],
+    "confidence": 0.8,
+    "createdAt": "2026-07-07T00:00:00.000Z",
+    "createdBy": "Sarah",
+    "displayDue": "Before launch",
+    "due": "unspecified",
+    "priority": "normal",
+    "source": {
+      "section": "Meeting Summary",
+      "speaker": "Ibrahim",
+      "timestamp": "unspecified"
+    },
+    "status": "todo",
+    "task": "Perform load testing and multi-user reservation testing to prevent double bookings"
+  },
+  {
+    "assignees": [
+      "Alex"
+    ],
+    "confidence": 0.8,
+    "createdAt": "2026-07-07T00:00:00.000Z",
+    "createdBy": "Sarah",
+    "displayDue": "Friday",
+    "due": "2026-07-10",
+    "priority": "high",
+    "source": {
+      "section": "Meeting Summary",
+      "speaker": "Alex",
+      "timestamp": "unspecified"
+    },
+    "status": "todo",
+    "task": "Create booking flow screenshots and a short launch animation for marketing"
+  }
+]

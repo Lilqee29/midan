@@ -11,7 +11,6 @@ export function ClerkProvider({ children }: { children: ReactNode }) {
         variables: {
           colorPrimary: "#0D9488",
           colorBackground: "#ffffff",
-          colorText: "#134E4A",
           borderRadius: "0.625rem",
         },
         elements: {
