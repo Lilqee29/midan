@@ -21,6 +21,15 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  FadeIn,
+  ScaleIn,
+  StaggerChildren,
+  StaggerItem,
+} from "@/components/animations";
+import { ConfidenceMeter } from "@/components/confidence-meter";
+import { StatusIndicator } from "@/components/status-indicator";
 
 interface ActionItem {
   assignees: string[];
@@ -218,86 +227,97 @@ export default function DashboardPage() {
           <div className="space-y-8">
             {/* Rough Notes */}
             {result.roughNotes.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-[#0D9488]" />
-                    Key Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {result.roughNotes.map((note, i) => (
-                      <div
-                        key={i}
-                        className="p-3 bg-brand-surface rounded-lg border border-border"
-                      >
-                        <p className="text-sm">{note.note}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          — {note.source}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <FadeIn>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-[#0D9488]" />
+                      Key Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <StaggerChildren className="space-y-3">
+                      {result.roughNotes.map((note, i) => (
+                        <StaggerItem key={i}>
+                          <div className="p-3 bg-brand-surface rounded-lg border border-border">
+                            <p className="text-sm">{note.note}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              — {note.source}
+                            </p>
+                          </div>
+                        </StaggerItem>
+                      ))}
+                    </StaggerChildren>
+                  </CardContent>
+                </Card>
+              </FadeIn>
             )}
 
             {/* Grouped by Person */}
             <div>
-              <h2 className="text-xl font-semibold text-brand-text mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-[#0D9488]" />
-                Action Items by Person
-              </h2>
-              <div className="grid gap-6">
+              <FadeIn>
+                <h2 className="text-xl font-semibold text-brand-text mb-4 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-[#0D9488]" />
+                  Action Items by Person
+                </h2>
+              </FadeIn>
+              <StaggerChildren className="grid gap-6">
                 {Object.entries(result.groupedByPerson).map(
                   ([person, items]) => (
-                    <Card key={person}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-[#0D9488] text-white rounded-full flex items-center justify-center text-sm font-bold">
-                              {person[0]}
-                            </div>
-                            {person}
-                          </span>
-                          <Badge variant="secondary">
-                            {items.length} task{items.length !== 1 ? "s" : ""}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {items.map((item, i) => {
-                            const confidence = getConfidenceLabel(
-                              item.confidence
-                            );
-                            return (
-                              <div
+                    <StaggerItem key={person}>
+                      <Card className="overflow-hidden">
+                        <CardHeader className="bg-brand-surface/50">
+                          <CardTitle className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 500,
+                                  damping: 25,
+                                }}
+                                className="w-8 h-8 bg-[#0D9488] text-white rounded-full flex items-center justify-center text-sm font-bold"
+                              >
+                                {person[0]}
+                              </motion.div>
+                              {person}
+                            </span>
+                            <Badge variant="secondary">
+                              {items.length} task
+                              {items.length !== 1 ? "s" : ""}
+                            </Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                          <div className="space-y-3">
+                            {items.map((item, i) => (
+                              <motion.div
                                 key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
                                 className="p-4 bg-white rounded-lg border border-border hover:border-[#0D9488]/30 transition-colors"
                               >
                                 <div className="flex items-start justify-between gap-4">
                                   <div className="flex items-start gap-3">
-                                    {getStatusIcon(item.status)}
-                                    <div>
+                                    <StatusIndicator status={item.status} />
+                                    <div className="flex-1">
                                       <p className="font-medium text-sm">
                                         {item.task}
                                       </p>
-                                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                        <span className="flex items-center gap-1">
+                                      <div className="flex items-center gap-3 mt-2">
+                                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                           <Clock className="h-3 w-3" />
                                           {item.due_resolved || item.due_raw}
                                         </span>
-                                        <span>·</span>
-                                        <span
-                                          className={`font-medium ${confidence.color}`}
-                                        >
-                                          {confidence.label} confidence
-                                        </span>
+                                        <ConfidenceMeter
+                                          confidence={item.confidence}
+                                          className="flex-1 max-w-[150px]"
+                                        />
                                       </div>
                                       {item.source?.quote_context && (
-                                        <p className="text-xs text-muted-foreground mt-1 italic">
+                                        <p className="text-xs text-muted-foreground mt-2 italic border-l-2 border-[#0D9488] pl-2">
                                           &ldquo;{item.source.quote_context}
                                           &rdquo;
                                         </p>
@@ -310,15 +330,15 @@ export default function DashboardPage() {
                                     {item.priority}
                                   </Badge>
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </CardContent>
-                    </Card>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </StaggerItem>
                   )
                 )}
-              </div>
+              </StaggerChildren>
             </div>
           </div>
         )}
