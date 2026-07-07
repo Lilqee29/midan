@@ -140,6 +140,12 @@ export default function DashboardPage() {
             </span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link
+              href="/settings"
+              className="text-sm font-medium text-muted-foreground hover:text-brand-text transition-colors"
+            >
+              Settings
+            </Link>
             <span className="text-sm text-muted-foreground">
               {/* User button would go here */}
             </span>

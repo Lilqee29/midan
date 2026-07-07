@@ -1,0 +1,41 @@
+/* Midan Content Script Styles for Google Meet */
+
+/* Floating capture button */
+.midan-capture-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #0D9488;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+  transition: all 0.2s ease;
+}
+
+.midan-capture-btn:hover {
+  background: #0F766E;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.4);
+}
+
+.midan-capture-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.midan-capture-btn.capturing {
+  background: #EA580C;
+}
+
+.midan-capture-btn.capturing:hover {
+  background: #DC2626;
+}

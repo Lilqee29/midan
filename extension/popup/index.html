@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400, initial-scale=1.0">
+  <title>Midan</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen">
+      <div class="header">
+        <h1 class="logo">Midan</h1>
+        <p class="subtitle">Meeting Notes Extractor</p>
+      </div>
+      <div class="content">
+        <div class="input-group">
+          <label for="api-key">API Key</label>
+          <input
+            type="password"
+            id="api-key"
+            placeholder="midan_..."
+            autocomplete="off"
+          />
+          <p class="hint">
+            Get your API key from
+            <a href="http://localhost:3000/settings" target="_blank">Midan Settings</a>
+          </p>
+        </div>
+        <button id="connect-btn" class="btn primary">
+          Connect to Midan
+        </button>
+        <div id="auth-status" class="status hidden"></div>
+      </div>
+    </div>
+
+    <!-- Main Screen (after auth) -->
+    <div id="main-screen" class="screen hidden">
+      <div class="header">
+        <div class="header-row">
+          <h1 class="logo small">Midan</h1>
+          <button id="settings-btn" class="icon-btn" title="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- Notes Input -->
+        <div id="input-section">
+          <textarea
+            id="notes-input"
+            placeholder="Paste meeting notes here, or click 'Capture from Meet' when in a Google Meet call..."
+            rows="8"
+          ></textarea>
+          <div class="btn-row">
+            <button id="capture-btn" class="btn secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4z"></path>
+                <rect x="3" y="6" width="12" height="12" rx="2" ry="2"></rect>
+              </svg>
+              Capture from Meet
+            </button>
+            <button id="extract-btn" class="btn primary">
+              Extract Action Items
+            </button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-section" class="hidden">
+          <div id="results-content"></div>
+          <button id="new-extraction-btn" class="btn secondary full-width">
+            New Extraction
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading-section" class="hidden">
+          <div class="spinner"></div>
+          <p>Analyzing meeting notes...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
