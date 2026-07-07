@@ -8,20 +8,30 @@ const mainScreen = document.getElementById("main-screen");
 const apiKeyInput = document.getElementById("api-key");
 const connectBtn = document.getElementById("connect-btn");
 const authStatus = document.getElementById("auth-status");
-const notesInput = document.getElementById("notes-input");
-const captureBtn = document.getElementById("capture-btn");
-const extractBtn = document.getElementById("extract-btn");
-const resultsSection = document.getElementById("results-section");
+const listeningSection = document.getElementById("listening-section");
+const incallSection = document.getElementById("incall-section");
+const meetingTimer = document.getElementById("meeting-timer");
+const stopCaptureBtn = document.getElementById("stop-capture-btn");
+const manualBtn = document.getElementById("manual-btn");
+const manualModal = document.getElementById("manual-modal");
+const closeModalBtn = document.getElementById("close-modal-btn");
+const manualNotes = document.getElementById("manual-notes");
+const extractManualBtn = document.getElementById("extract-manual-btn");
+const resultsModal = document.getElementById("results-modal");
 const resultsContent = document.getElementById("results-content");
+const closeResultsBtn = document.getElementById("close-results-btn");
 const loadingSection = document.getElementById("loading-section");
-const newExtractionBtn = document.getElementById("new-extraction-btn");
 const settingsBtn = document.getElementById("settings-btn");
+
+let timerInterval = null;
+let startTime = null;
 
 // Initialize
 async function init() {
   const { apiKey } = await chrome.storage.local.get("apiKey");
   if (apiKey) {
     showMainScreen();
+    checkForActiveMeet();
   }
 }
 
@@ -50,7 +60,7 @@ connectBtn.addEventListener("click", async () => {
       await chrome.storage.local.set({ apiKey });
       showMainScreen();
     } else {
-      showAuthStatus("Invalid API key. Please check your key in Midan settings.", "error");
+      showAuthStatus("Invalid API key. Check your key in Midan settings.", "error");
     }
   } catch (error) {
     showAuthStatus("Cannot connect to Midan server. Is it running?", "error");
@@ -71,16 +81,105 @@ function showMainScreen() {
   mainScreen.classList.remove("hidden");
 }
 
-// Extract action items
-extractBtn.addEventListener("click", async () => {
-  const notes = notesInput.value.trim();
+// Check if user is in a Google Meet call
+async function checkForActiveMeet() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.url?.includes("meet.google.com")) {
+      showInCallUI();
+    }
+  } catch (error) {
+    // Not in a meet, keep listening state
+  }
+}
 
+function showInCallUI() {
+  listeningSection.classList.add("hidden");
+  incallSection.classList.remove("hidden");
+  startTimer();
+}
+
+function showListeningUI() {
+  listeningSection.classList.remove("hidden");
+  incallSection.classList.add("hidden");
+  stopTimer();
+}
+
+// Timer
+function startTimer() {
+  startTime = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function updateTimer() {
+  if (!startTime) return;
+  const elapsed = Date.now() - startTime;
+  const hours = Math.floor(elapsed / 3600000);
+  const minutes = Math.floor((elapsed % 3600000) / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  meetingTimer.textContent = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+// Stop capture and extract
+stopCaptureBtn.addEventListener("click", async () => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab?.url?.includes("meet.google.com")) {
+      alert("No active Google Meet call found");
+      return;
+    }
+
+    // Get transcript from content script
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const transcriptEl = document.querySelector('[data-panel-id="captions"]');
+        return transcriptEl ? transcriptEl.innerText : null;
+      },
+    });
+
+    const transcript = results[0]?.result;
+    if (transcript) {
+      await extractFromNotes(transcript);
+    } else {
+      alert("No transcript captured. Make sure the transcript panel is open.");
+    }
+  } catch (error) {
+    alert("Failed to capture transcript");
+  }
+});
+
+// Manual input
+manualBtn.addEventListener("click", () => {
+  manualModal.classList.remove("hidden");
+});
+
+closeModalBtn.addEventListener("click", () => {
+  manualModal.classList.add("hidden");
+});
+
+extractManualBtn.addEventListener("click", async () => {
+  const notes = manualNotes.value.trim();
   if (!notes) {
     alert("Please paste your meeting notes first");
     return;
   }
+  manualModal.classList.add("hidden");
+  await extractFromNotes(notes);
+});
 
-  showLoading(true);
+// Extract action items
+async function extractFromNotes(notes) {
+  loadingSection.classList.remove("hidden");
 
   try {
     const { apiKey } = await chrome.storage.local.get("apiKey");
@@ -103,55 +202,8 @@ extractBtn.addEventListener("click", async () => {
   } catch (error) {
     alert("Extraction failed. Please try again.");
   } finally {
-    showLoading(false);
+    loadingSection.classList.add("hidden");
   }
-});
-
-// Capture from Google Meet
-captureBtn.addEventListener("click", async () => {
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    if (!tab?.url?.includes("meet.google.com")) {
-      alert("Please open a Google Meet call first");
-      return;
-    }
-
-    // Inject content script to capture transcript
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: captureMeetTranscript,
-    });
-
-    const transcript = results[0]?.result;
-    if (transcript) {
-      notesInput.value = transcript;
-      notesInput.dispatchEvent(new Event("input"));
-    } else {
-      alert("No transcript found. Make sure the transcript panel is open.");
-    }
-  } catch (error) {
-    alert("Failed to capture transcript. Make sure you're in a Google Meet call.");
-  }
-});
-
-// This function runs in the Meet tab context
-function captureMeetTranscript() {
-  // Try to find the transcript panel
-  const transcriptContainer = document.querySelector('[data-panel-id="captions"]');
-  if (!transcriptContainer) {
-    // Try alternative selector
-    const altContainer = document.querySelector('.ryQhQe');
-    if (!altContainer) return null;
-    return altContainer.innerText;
-  }
-  return transcriptContainer.innerText;
-}
-
-// Show/hide loading
-function showLoading(show) {
-  loadingSection.classList.toggle("hidden", !show);
-  extractBtn.disabled = show;
 }
 
 // Display results
@@ -189,20 +241,25 @@ function showResults(data) {
   }
 
   resultsContent.innerHTML = html;
-  notesInput.parentElement.classList.add("hidden");
-  resultsSection.classList.remove("hidden");
+  resultsModal.classList.remove("hidden");
 }
 
-// New extraction
-newExtractionBtn.addEventListener("click", () => {
-  notesInput.value = "";
-  notesInput.parentElement.classList.remove("hidden");
-  resultsSection.classList.add("hidden");
+closeResultsBtn.addEventListener("click", () => {
+  resultsModal.classList.add("hidden");
 });
 
 // Settings
 settingsBtn.addEventListener("click", () => {
   chrome.tabs.create({ url: `${API_BASE}/settings` });
+});
+
+// Listen for tab updates to detect Google Meet
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url?.includes("meet.google.com")) {
+    showInCallUI();
+    chrome.action.setBadgeText({ text: "LIVE", tabId });
+    chrome.action.setBadgeBackgroundColor({ color: "#0D9488", tabId });
+  }
 });
 
 // Initialize

@@ -4,9 +4,12 @@ import {
   Users,
   Zap,
   ArrowRight,
-  FileText,
+  Mic,
   Clock,
   Shield,
+  Headphones,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,17 +24,18 @@ export default function Home() {
       <section className="relative overflow-hidden pt-32 pb-20 px-4">
         <div className="max-w-5xl mx-auto text-center">
           <Badge variant="secondary" className="mb-6">
-            From meeting notes to action items in seconds
+            <Headphones className="h-3 w-3 mr-1" />
+            Listens so you don&apos;t have to
           </Badge>
           <h1 className="text-4xl sm:text-6xl font-bold text-brand-text tracking-tight leading-tight">
-            Stop losing commitments
+            It listens.
             <br />
-            <span className="text-[#0D9488]">in scattered notes</span>
+            <span className="text-[#0D9488]">You do the work.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Midan turns meeting notes into structured, per-person action items
-            automatically. No more forgotten tasks, misassigned deadlines, or
-            manual re-typing.
+            Midan&apos;s Chrome extension listens to your Google Meet calls,
+            captures every commitment, and organizes action items by person —
+            automatically. No notes. No re-typing. Just done.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
@@ -57,31 +61,31 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-brand-text">
-              Three steps. That&apos;s it.
+              Three steps. Fully automatic.
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              No complex setup. No learning curve. Just results.
+              Install the extension. Join your call. That&apos;s it.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                icon: FileText,
+                icon: Headphones,
                 step: "1",
-                title: "Paste your notes",
-                desc: "Drop in raw meeting notes, a transcript, or any text from your sync.",
+                title: "Install & forget",
+                desc: "One-click Chrome extension install. It runs in the background during your Google Meet calls.",
               },
               {
-                icon: Zap,
+                icon: Mic,
                 step: "2",
-                title: "AI extracts action items",
-                desc: "Midan identifies tasks, assignees, deadlines, and priorities automatically.",
+                title: "It listens for you",
+                desc: "The extension captures everything said in the meeting — commitments, deadlines, who said what.",
               },
               {
-                icon: Users,
+                icon: Sparkles,
                 step: "3",
-                title: "See who does what",
-                desc: "Get a clean, grouped-by-person view with status, priority, and confidence.",
+                title: "Auto-organized results",
+                desc: "After the call ends, Midan extracts and organizes action items by person with priority and deadlines.",
               },
             ].map((item) => (
               <div
@@ -107,15 +111,19 @@ export default function Home() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-brand-text">
-              Built for real meetings
+              Built for how meetings actually work
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              Not another generic AI tool. Midan understands how meetings
-              actually work.
+              Not another note-taking app. Midan captures what matters.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
+              {
+                icon: Mic,
+                title: "Automatic capture",
+                desc: "No buttons to press. The extension listens passively while you focus on the conversation.",
+              },
               {
                 icon: Users,
                 title: "Grouped by person",
@@ -134,17 +142,12 @@ export default function Home() {
               {
                 icon: Shield,
                 title: "Source tracking",
-                desc: "Every action item traces back to the exact moment it was said.",
+                desc: "Every action item traces back to who said it and when.",
               },
               {
                 icon: Zap,
                 title: "Priority detection",
                 desc: "Automatically categorizes high, normal, and low priority tasks.",
-              },
-              {
-                icon: FileText,
-                title: "Status tracking",
-                desc: "Todo, in progress, blocked, review — tracks where each task actually stands.",
               },
             ].map((item) => (
               <div
@@ -166,11 +169,10 @@ export default function Home() {
       <section className="py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-brand-text">
-            Ready to stop losing action items?
+            Ready to stop taking notes?
           </h2>
           <p className="mt-4 text-muted-foreground text-lg">
-            Start extracting structured tasks from your meeting notes today.
-            Free to use.
+            Install the extension. Join your next call. Midan handles the rest.
           </p>
           <div className="mt-8">
             <Link href="/signup">
