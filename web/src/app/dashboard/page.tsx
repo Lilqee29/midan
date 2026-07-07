@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,7 @@ import {
   Plus,
   History,
   Settings,
-  Users,
-  Trash2,
+  Quote,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -28,6 +27,8 @@ import {
   StaggerChildren,
   StaggerItem,
 } from "@/components/animations";
+import { ConfidenceMeter } from "@/components/confidence-meter";
+import { StatusIndicator } from "@/components/status-indicator";
 
 interface Meeting {
   id: string;
@@ -51,6 +52,8 @@ interface ExtractionResult {
   groupedByPerson: Record<string, ExtractionResult["actionItems"]>;
 }
 
+const tabTransition = { duration: 0.2, ease: "easeOut" as const };
+
 export default function DashboardPage() {
   const [view, setView] = useState<"history" | "extract">("history");
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -60,22 +63,21 @@ export default function DashboardPage() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ExtractionResult | null>(null);
 
-  // Fetch meetings on mount
-  useEffect(() => {
-    fetchMeetings();
-  }, []);
-
-  async function fetchMeetings() {
+  const fetchMeetings = useCallback(async () => {
     try {
       const res = await fetch("/api/meetings");
       const data = await res.json();
       setMeetings(data.meetings || []);
-    } catch (error) {
-      console.error("Failed to fetch meetings:", error);
+    } catch {
+      toast.error("Failed to load meetings");
     } finally {
       setLoadingMeetings(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchMeetings();
+  }, [fetchMeetings]);
 
   function formatDate(dateStr: string) {
     const date = new Date(dateStr);
@@ -121,10 +123,7 @@ export default function DashboardPage() {
       const data: ExtractionResult = await res.json();
       setProgress(100);
       setResult(data);
-      toast.success(
-        `Extracted ${data.actionItems.length} action items`
-      );
-      // Refresh meetings list
+      toast.success(`Extracted ${data.actionItems.length} action items`);
       fetchMeetings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Extraction failed");
@@ -134,65 +133,67 @@ export default function DashboardPage() {
     }
   }
 
-  function getPriorityColor(priority: string) {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "low":
-        return "bg-gray-100 text-gray-600 border-gray-200";
-      default:
-        return "bg-blue-100 text-blue-700 border-blue-200";
-    }
+  function switchView(v: "history" | "extract") {
+    setView(v);
+    if (v === "history") setResult(null);
   }
 
+  const wordCount = notes.split(/\s+/).filter(Boolean).length;
+
   return (
-    <div className="min-h-screen bg-brand-surface">
+    <div className="min-h-screen bg-brand-surface flex flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-white">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+      <header className="border-b border-border bg-white sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[#0D9488] rounded-lg flex items-center justify-center">
+              <Headphones className="h-4 w-4 text-white" />
+            </div>
             <span className="text-xl font-bold text-brand-text tracking-tight">
               Midan
             </span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link
               href="/settings"
-              className="text-sm font-medium text-muted-foreground hover:text-brand-text transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-brand-text transition-colors cursor-pointer"
             >
               <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
             </Link>
             <UserButton />
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8">
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mb-8">
-          <button
-            onClick={() => { setView("history"); setResult(null); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              view === "history"
-                ? "bg-[#0D9488] text-white"
-                : "bg-white text-muted-foreground hover:text-brand-text border border-border"
-            }`}
-          >
-            <History className="h-4 w-4" />
-            Recent Calls
-          </button>
-          <button
-            onClick={() => setView("extract")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              view === "extract"
-                ? "bg-[#0D9488] text-white"
-                : "bg-white text-muted-foreground hover:text-brand-text border border-border"
-            }`}
-          >
-            <FileText className="h-4 w-4" />
-            Paste Notes
-          </button>
-        </div>
+        <FadeIn>
+          <div className="flex items-center gap-2 mb-8">
+            <button
+              onClick={() => switchView("history")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                view === "history"
+                  ? "bg-[#0D9488] text-white shadow-sm shadow-[#0D9488]/25"
+                  : "bg-white text-muted-foreground hover:text-brand-text border border-border hover:border-[#0D9488]/30"
+              }`}
+            >
+              <History className="h-4 w-4" />
+              Recent Calls
+            </button>
+            <button
+              onClick={() => switchView("extract")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                view === "extract"
+                  ? "bg-[#0D9488] text-white shadow-sm shadow-[#0D9488]/25"
+                  : "bg-white text-muted-foreground hover:text-brand-text border border-border hover:border-[#0D9488]/30"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              Paste Notes
+            </button>
+          </div>
+        </FadeIn>
 
         <AnimatePresence mode="wait">
           {/* History View */}
@@ -202,14 +203,15 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              transition={tabTransition}
             >
-              {/* Status Banner */}
-              <Card className="mb-6 bg-gradient-to-r from-[#0D9488] to-[#14B8A6] text-white border-0">
-                <CardContent className="p-6">
+              {/* Extension Active Banner */}
+              <Card className="mb-8 bg-gradient-to-r from-[#0D9488] to-[#14B8A6] text-white border-0 overflow-hidden relative">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDE0em0wLTRWMjhoLTR2MmgxNHptMC00VjI0aC00djJoMTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40" />
+                <CardContent className="p-6 relative">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
                         <Headphones className="h-6 w-6" />
                       </div>
                       <div>
@@ -221,7 +223,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <Badge className="bg-white/20 text-white border-0">
+                    <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
                       <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
                       Listening
                     </Badge>
@@ -229,8 +231,8 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
 
-              {/* Recent Meetings */}
-              <div className="flex items-center justify-between mb-4">
+              {/* Section Header */}
+              <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-semibold text-brand-text">
                   Recent Calls
                 </h2>
@@ -238,13 +240,14 @@ export default function DashboardPage() {
                   variant="outline"
                   size="sm"
                   className="cursor-pointer"
-                  onClick={() => setView("extract")}
+                  onClick={() => switchView("extract")}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   New Extraction
                 </Button>
               </div>
 
+              {/* Content */}
               {loadingMeetings ? (
                 <StaggerChildren className="space-y-3">
                   {[1, 2, 3].map((i) => (
@@ -257,6 +260,7 @@ export default function DashboardPage() {
                               <div className="h-4 bg-gray-100 rounded w-1/3 mb-2 animate-pulse" />
                               <div className="h-3 bg-gray-100 rounded w-1/4 animate-pulse" />
                             </div>
+                            <div className="h-6 w-16 bg-gray-100 rounded-full animate-pulse" />
                           </div>
                         </CardContent>
                       </Card>
@@ -264,51 +268,55 @@ export default function DashboardPage() {
                   ))}
                 </StaggerChildren>
               ) : meetings.length === 0 ? (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Mic className="h-12 w-12 text-[#0D9488]/30 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-brand-text mb-2">
-                      No meetings yet
-                    </h3>
-                    <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-                      Install the Chrome extension and join a Google Meet call, or
-                      paste notes manually.
-                    </p>
-                    <Button
-                      onClick={() => setView("extract")}
-                      className="bg-[#0D9488] hover:bg-[#0F766E] text-white cursor-pointer"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Extraction
-                    </Button>
-                  </CardContent>
-                </Card>
+                <FadeIn delay={0.1}>
+                  <Card>
+                    <CardContent className="p-12 text-center">
+                      <div className="w-16 h-16 bg-[#0D9488]/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                        <Mic className="h-8 w-8 text-[#0D9488]" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-brand-text mb-2">
+                        No meetings yet
+                      </h3>
+                      <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6 leading-relaxed">
+                        Install the Chrome extension and join a Google Meet call,
+                        or paste notes manually to extract action items.
+                      </p>
+                      <Button
+                        onClick={() => switchView("extract")}
+                        className="bg-[#0D9488] hover:bg-[#0F766E] text-white cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Extraction
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </FadeIn>
               ) : (
                 <StaggerChildren className="space-y-3">
                   {meetings.map((meeting) => (
                     <StaggerItem key={meeting.id}>
                       <Link href={`/dashboard/${meeting.id}`}>
-                        <Card className="hover:border-[#0D9488]/30 transition-colors cursor-pointer">
+                        <Card className="hover:border-[#0D9488]/30 hover:shadow-sm transition-all cursor-pointer group">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-brand-surface rounded-lg flex items-center justify-center">
+                                <div className="w-10 h-10 bg-[#0D9488]/10 rounded-lg flex items-center justify-center group-hover:bg-[#0D9488]/15 transition-colors">
                                   <Mic className="h-5 w-5 text-[#0D9488]" />
                                 </div>
                                 <div>
-                                  <h3 className="font-medium text-sm">
+                                  <h3 className="font-medium text-sm text-brand-text">
                                     {meeting.title || "Untitled Meeting"}
                                   </h3>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <Clock className="h-3 w-3" />
                                     {formatDate(meeting.date)}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <Badge variant="secondary">
-                                  {meeting.itemCount} items
-                                </Badge>
-                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {meeting.itemCount} item
+                                {meeting.itemCount !== 1 ? "s" : ""}
+                              </Badge>
                             </div>
                           </CardContent>
                         </Card>
@@ -320,14 +328,14 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* Manual Extract View */}
+          {/* Paste Notes View */}
           {view === "extract" && (
             <motion.div
               key="extract"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              transition={tabTransition}
             >
               <Card className="mb-6">
                 <CardContent className="p-6">
@@ -341,12 +349,12 @@ export default function DashboardPage() {
                     placeholder={"Paste your meeting notes, transcript, or raw text here...\n\nThe extension handles this automatically for Google Meet calls. Use this for other platforms or manual input."}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[200px] font-mono text-sm"
+                    className="min-h-[200px] font-mono text-sm resize-y"
                   />
                   <div className="mt-4 flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
                       {notes.length > 0
-                        ? `${notes.split(/\s+/).filter(Boolean).length} words`
+                        ? `${wordCount} word${wordCount !== 1 ? "s" : ""}`
                         : "Fallback for non-Meet calls"}
                     </p>
                     <Button
@@ -369,22 +377,31 @@ export default function DashboardPage() {
                   </div>
 
                   {extracting && (
-                    <div className="mt-4">
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mt-4"
+                    >
                       <Progress value={progress} className="h-2" />
                       <p className="text-sm text-muted-foreground mt-2">
                         Analyzing your meeting notes...
                       </p>
-                    </div>
+                    </motion.div>
                   )}
                 </CardContent>
               </Card>
 
               {/* Results */}
               {result && (
-                <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-6"
+                >
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-brand-text">
-                      {result.actionItems.length} Action Items
+                      {result.actionItems.length} Action Item
+                      {result.actionItems.length !== 1 ? "s" : ""}
                     </h2>
                     <Button
                       variant="outline"
@@ -399,48 +416,81 @@ export default function DashboardPage() {
                     </Button>
                   </div>
 
-                  <StaggerChildren className="grid gap-4">
+                  <StaggerChildren className="space-y-4">
                     {Object.entries(result.groupedByPerson).map(
                       ([person, items]) => (
                         <StaggerItem key={person}>
                           <Card>
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="w-8 h-8 bg-[#0D9488] text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                  {person[0]}
+                            <CardContent className="p-5">
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-9 h-9 bg-[#0D9488] text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
+                                  {person[0]?.toUpperCase()}
                                 </div>
-                                <span className="font-medium text-sm">
-                                  {person}
-                                </span>
-                                <Badge variant="secondary" className="ml-auto">
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-semibold text-sm text-brand-text">
+                                    {person}
+                                  </span>
+                                </div>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs shrink-0"
+                                >
                                   {items.length} task
                                   {items.length !== 1 ? "s" : ""}
                                 </Badge>
                               </div>
-                              <div className="space-y-2">
+                              <div className="space-y-3">
                                 {items.map((item, i) => (
                                   <div
                                     key={i}
-                                    className="p-3 bg-brand-surface rounded-lg border border-border"
+                                    className="p-4 bg-brand-surface rounded-lg border border-border"
                                   >
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div className="flex-1">
-                                        <p className="font-medium text-sm">
+                                    <div className="flex items-start gap-3">
+                                      <StatusIndicator
+                                        status={item.status}
+                                        className="mt-0.5 shrink-0"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm text-brand-text leading-relaxed">
                                           {item.task}
                                         </p>
-                                        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                                          <span className="flex items-center gap-1">
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2">
+                                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
                                             <Clock className="h-3 w-3" />
-                                            {item.due_resolved || item.due_raw || "No deadline"}
+                                            {item.due_resolved ||
+                                              item.due_raw ||
+                                              "No deadline"}
                                           </span>
-                                          <span className="font-medium text-[#0D9488]">
-                                            {Math.round(item.confidence * 100)}% confident
-                                          </span>
+                                          <ConfidenceMeter
+                                            confidence={item.confidence}
+                                            className="flex-1 min-w-[100px] max-w-[160px]"
+                                          />
+                                          <Badge
+                                            className={`text-xs ${
+                                              item.priority === "high"
+                                                ? "bg-red-100 text-red-700 border-red-200"
+                                                : item.priority === "low"
+                                                  ? "bg-gray-100 text-gray-600 border-gray-200"
+                                                  : "bg-blue-100 text-blue-700 border-blue-200"
+                                            }`}
+                                          >
+                                            {item.priority}
+                                          </Badge>
                                         </div>
+                                        {item.source && (
+                                          <div className="mt-3 pl-3 border-l-2 border-[#0D9488]/30">
+                                            <p className="text-xs text-muted-foreground italic flex items-start gap-1.5">
+                                              <Quote className="h-3 w-3 mt-0.5 shrink-0 text-[#0D9488]/50" />
+                                              <span>
+                                                <span className="font-medium not-italic text-brand-text">
+                                                  {item.source.speaker}:
+                                                </span>{" "}
+                                                {item.source.quote_context}
+                                              </span>
+                                            </p>
+                                          </div>
+                                        )}
                                       </div>
-                                      <Badge className={getPriorityColor(item.priority)}>
-                                        {item.priority}
-                                      </Badge>
                                     </div>
                                   </div>
                                 ))}
@@ -451,26 +501,53 @@ export default function DashboardPage() {
                       )
                     )}
                   </StaggerChildren>
-                </div>
+                </motion.div>
               )}
 
               {!result && !extracting && (
-                <div className="text-center py-12">
-                  <Mic className="h-12 w-12 text-[#0D9488]/30 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-brand-text mb-2">
-                    Manual extraction
-                  </h3>
-                  <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                    Use this for meetings on platforms other than Google Meet.
-                    For Meet calls, the extension handles everything
-                    automatically.
-                  </p>
-                </div>
+                <FadeIn delay={0.1}>
+                  <div className="text-center py-16">
+                    <div className="w-16 h-16 bg-[#0D9488]/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                      <Mic className="h-8 w-8 text-[#0D9488]" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-brand-text mb-2">
+                      Manual extraction
+                    </h3>
+                    <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
+                      Use this for meetings on platforms other than Google Meet.
+                      For Meet calls, the extension handles everything
+                      automatically.
+                    </p>
+                  </div>
+                </FadeIn>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8 px-4 mt-auto">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} Midan. All rights reserved.
+          </p>
+          <div className="flex gap-6 text-sm text-muted-foreground">
+            <Link
+              href="/login"
+              className="hover:text-brand-text transition-colors"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/signup"
+              className="hover:text-brand-text transition-colors"
+            >
+              Sign up
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

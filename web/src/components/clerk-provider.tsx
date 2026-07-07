@@ -7,6 +7,7 @@ export function ClerkProvider({ children }: { children: ReactNode }) {
   return (
     <NextClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      afterSignOutUrl="/"
       appearance={{
         variables: {
           colorPrimary: "#0D9488",

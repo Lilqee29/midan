@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,8 @@ import {
   ExternalLink,
   Shield,
   BarChart3,
+  AlertTriangle,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -25,11 +28,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Simulated API key generation
   const generateApiKey = async () => {
     setLoading(true);
     try {
-      // In production, this would call /api/settings/generate-key
       const mockKey = `midan_${Array.from({ length: 32 }, () =>
         "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]
       ).join("")}`;
@@ -48,7 +49,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-surface">
+    <div className="min-h-screen bg-brand-surface flex flex-col">
       {/* Header */}
       <header className="border-b border-border bg-white">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -59,14 +60,15 @@ export default function SettingsPage() {
           </Link>
           <Link
             href="/dashboard"
-            className="text-sm font-medium text-muted-foreground hover:text-brand-text transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-brand-text transition-colors cursor-pointer"
           >
+            <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Link>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 space-y-6">
         {/* Page Title */}
         <div>
           <h1 className="text-2xl font-bold text-brand-text">Settings</h1>
@@ -75,31 +77,34 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* Account Info */}
-        <Card>
+        {/* Account Card */}
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-[#0D9488]" />
               Account
             </CardTitle>
             <CardDescription>
-              Your account information from Clerk
+              Your account information managed by Clerk
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Email</p>
-                <p className="text-sm text-muted-foreground">
-                  Connected via Clerk
-                </p>
+              <div className="flex items-center gap-4">
+                <UserButton />
+                <div>
+                  <p className="text-sm font-medium text-brand-text">Signed in</p>
+                  <p className="text-sm text-muted-foreground">
+                    Connected via Clerk
+                  </p>
+                </div>
               </div>
               <Badge variant="secondary">Active</Badge>
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Plan</p>
+                <p className="text-sm font-medium text-brand-text">Plan</p>
                 <p className="text-sm text-muted-foreground">Free tier</p>
               </div>
               <Badge className="bg-[#0D9488] text-white">Current</Badge>
@@ -107,8 +112,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* API Key for Extension */}
-        <Card>
+        {/* Chrome Extension API Key Card */}
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Key className="h-5 w-5 text-[#0D9488]" />
@@ -172,8 +177,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Usage Stats */}
-        <Card>
+        {/* Usage Stats Card */}
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-[#0D9488]" />
@@ -187,9 +192,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="p-4 bg-brand-surface rounded-lg">
                 <p className="text-2xl font-bold text-brand-text">0</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Extractions
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Extractions</p>
               </div>
               <div className="p-4 bg-brand-surface rounded-lg">
                 <p className="text-2xl font-bold text-brand-text">0</p>
@@ -197,16 +200,14 @@ export default function SettingsPage() {
               </div>
               <div className="p-4 bg-brand-surface rounded-lg">
                 <p className="text-2xl font-bold text-[#0D9488]">10</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Free remaining
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Free remaining</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Chrome Extension Link */}
-        <Card>
+        {/* Chrome Extension Install Card */}
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-[#0D9488]" />
@@ -219,7 +220,7 @@ export default function SettingsPage() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium">Status</p>
+                <p className="text-sm font-medium text-brand-text">Status</p>
                 <p className="text-sm text-muted-foreground">
                   Extension not yet available
                 </p>
@@ -231,7 +232,50 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Danger Zone Card */}
+        <Card className="border-red-200 hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Danger Zone
+            </CardTitle>
+            <CardDescription>
+              Irreversible actions for your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-brand-text">Delete Account</p>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data
+                </p>
+              </div>
+              <Button variant="outline" className="cursor-pointer text-red-600 border-red-200 hover:bg-red-50">
+                Delete Account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-white py-8 px-4 mt-auto">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} Midan. All rights reserved.
+          </p>
+          <div className="flex gap-6 text-sm text-muted-foreground">
+            <Link href="/login" className="hover:text-brand-text transition-colors">
+              Sign in
+            </Link>
+            <Link href="/signup" className="hover:text-brand-text transition-colors">
+              Sign up
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
