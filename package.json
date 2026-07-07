@@ -1,0 +1,15 @@
+{
+  "name": "midan",
+  "private": true,
+  "workspaces": [
+    "web",
+    "extension"
+  ],
+  "scripts": {
+    "dev": "cd web && npm run dev",
+    "build": "cd web && npm run build",
+    "lint": "cd web && npm run lint",
+    "typecheck": "cd web && npm run typecheck",
+    "test": "cd web && npm test"
+  }
+}

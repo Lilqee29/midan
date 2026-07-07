@@ -1,0 +1,11 @@
+{
+  "name": "midanprototype",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node index.js sample-notes.txt"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}

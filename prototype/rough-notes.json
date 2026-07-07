@@ -1,0 +1,42 @@
+[
+  {
+    "note": "The restaurant booking system's frontend is mostly finished, but has some issues with the backend and payments",
+    "source": "Ibrahim"
+  },
+  {
+    "note": "The mobile layout needs work, specifically with menu filters and availability refresh after party size changes",
+    "source": "Mia"
+  },
+  {
+    "note": "There's a bug in the reservation flow when a user changes their party size after selecting a slot",
+    "source": "Carlos"
+  },
+  {
+    "note": "The system needs to lock party size before slot selection or clear and revalidate the slot immediately",
+    "source": "Priya"
+  },
+  {
+    "note": "Reminder emails should be sent 48 hours and 2 hours before reservations, with options to confirm or cancel",
+    "source": "Sarah"
+  },
+  {
+    "note": "The system should suggest a favorite item to returning customers in reminder emails",
+    "source": "Mia"
+  },
+  {
+    "note": "The waiting-list notification needs duplicate suppression and SMS fallback",
+    "source": "Carlos"
+  },
+  {
+    "note": "The cancellation flow needs to notify the waiting list even for late cancellations, if the new slot is still available",
+    "source": "Sarah"
+  },
+  {
+    "note": "Marketing needs booking flow screenshots and a launch animation by Friday",
+    "source": "Alex"
+  },
+  {
+    "note": "Stripe testing is a main blocker, and the mobile UX bugs and party-size availability refresh are also blockers",
+    "source": "Ibrahim, Mia"
+  }
+]

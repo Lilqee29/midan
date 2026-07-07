@@ -1,0 +1,79 @@
+Team Sync Meeting
+Date: July 7, 2026
+Duration: 40 minutes
+
+Sarah:
+Morning everyone. Let's keep this short. We have a few feature, UX, and launch items to lock down. Ibrahim, how is the restaurant booking system coming along?
+
+Ibrahim:
+Frontend is mostly finished. Customers can browse the menu, reserve tables, choose a pickup order, and select dietary preferences. I'm currently testing Stripe payments and fixing a few webhook issues. The backend sometimes goes to sleep on the free hosting plan, so I'm looking into a cron job to keep it awake.
+
+Mia:
+The mobile layout still needs work. On the last test, menu filters collapsed in a way that made it hard to choose a table. We also need a better way to show available slots after a user changes the party size.
+
+Ibrahim:
+Good catch. I can make the filter bar sticky and refresh availability automatically when the party size changes. I also need to finish email confirmations after payment, improve error handling, and test the reservation flow with multiple concurrent users to avoid double bookings.
+
+Carlos:
+I found a bug in the reservation flow: if a user changes their party size after selecting a slot, the selected slot stays active even when it becomes unavailable.
+
+Priya:
+That is a serious UX issue. We should either lock party size before slot selection or clear the slot and revalidate it immediately.
+
+Alex:
+Have we decided on reminder emails?
+
+Sarah:
+Yes. We need one reminder 48 hours before the reservation and another 2 hours before. Customers should be able to confirm or cancel with one click.
+
+Mia:
+For returning customers, can we also suggest a favorite item in the reminder? That would increase rebookings.
+
+Ibrahim:
+And if someone cancels, the system should automatically notify waiting-list customers and offer them the available time slot.
+
+Carlos:
+The waiting-list notification also needs duplicate suppression. We cannot send the same customer two emails or SMS messages for the same open slot.
+
+Priya:
+What about the cancellation flow? If a customer cancels less than two hours before, do we still notify the waiting list? There are timing edge cases.
+
+Sarah:
+Yes, notify the waiting list even for late cancellations, but only if the new slot is still available and the customer can confirm quickly.
+
+Alex:
+Marketing update: we’re preparing social media posts and a short launch video. We need booking flow screenshots by Friday, plus a 20-second “how to reserve” animation.
+
+Priya:
+I’ll draft the messaging. We should emphasize flexible cancellations, waiting-list upgrades, and contactless pickup.
+
+Sarah:
+Any blockers?
+
+Ibrahim:
+Stripe testing is the main blocker. Everything works in test mode, but I want to verify live mode end-to-end before launch.
+
+Mia:
+The mobile UX bugs and party-size availability refresh are also blockers. If those aren’t fixed, users may abandon before checkout.
+
+Carlos:
+And the waiting-list workflow needs one more pass for duplicate notices and SMS fallback.
+
+Sarah:
+Understood. We should not launch until payments are validated and the mobile flow is stable.
+
+Meeting Summary:
+- Frontend booking system is feature-complete, but mobile UX and party-size slot refresh need fixes.
+- Stripe webhook and live payment testing still in progress.
+- Email confirmations, reminder automation, and waiting-list notification are required.
+- One-click confirm/cancel reminders should support returning customers with personalized messaging.
+- Avoid duplicate waiting-list notices and add SMS fallback for high-priority slots.
+- Marketing needs booking screenshots and a launch animation by Friday.
+
+Action Items:
+1. Finish Stripe webhook testing and validate live payment flow.
+2. Implement email confirmations and one-click reminder actions.
+3. Improve mobile layout, add sticky mobile filters, and refresh availability on party-size changes.
+4. Add waiting-list notification automation with duplicate suppression and SMS fallback.
+5. Perform load testing and multi-user reservation testing to prevent double bookings.
+6. Create booking flow screenshots and a short launch animation for marketing before Friday.
